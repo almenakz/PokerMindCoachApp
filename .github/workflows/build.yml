@@ -1,39 +1,54 @@
 name: Build Kivy APK with Buildozer
 
-on: [push, workflow_dispatch] # Déclenche sur push ou manuellement
+# Déclencheurs: sur push vers la branche main OU manuellement
+on:
+  push:
+    branches: [ main, master ] # Adapte si ta branche principale a un autre nom
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Utilise un serveur Linux récent
+    runs-on: ubuntu-latest # Utilise un serveur Linux
 
     steps:
+      # Étape 1: Récupérer ton code depuis GitHub
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Utilise une version récente
 
+      # Étape 2: Mettre en place Python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9' # Utiliser une version Python stable supportée par Kivy/Buildozer
+          python-version: '3.9' # Version Python stable
 
+      # Étape 3: Mettre en place Java (nécessaire pour les outils Android)
       - name: Set up Java JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          java-version: '11' # Buildozer a besoin de Java (souvent JDK 11)
-          distribution: 'temurin' # Distribution OpenJDK populaire
+          java-version: '17' # Utiliser JDK 17 (recommandé par Android maintenant)
+          distribution: 'temurin'
 
+      # Étape 4: Installer Buildozer et ses dépendances système/Python
       - name: Install Buildozer and dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip ant # Installe les outils de base
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.34 # Installer buildozer et une version stable de Cython
+          sudo apt-get update -y # Met à jour les listes de paquets Linux
+          sudo apt-get install -y git zip unzip wget ant # Outils système requis
+          pip install --upgrade pip # Met à jour pip
+          pip install buildozer # Installe buildozer
+          # Installe Cython SÉPARÉMENT si besoin (parfois nécessaire)
+          # pip install cython==0.29.34
+          # buildozer a besoin d'accéder à /home/runner/.local/bin
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH
 
+      # Étape 5: Lancer la construction Buildozer
       - name: Build with Buildozer
         run: |
-          buildozer android debug # Lance la construction de l'APK de débogage
+          buildozer --version # Affiche la version de buildozer
+          buildozer android debug # Lance la construction
 
+      # Étape 6: (Ne s'exécute que si la construction réussit) Récupérer l'APK
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: apk # Nom de l'archive qui contiendra l'APK
-          path: bin/*.apk # Chemin où Buildozer met l'APK créé
+          name: apk # Nom de l'archive téléchargeable
+          path: bin/*.apk # Chemin où se trouve l'APK créé
