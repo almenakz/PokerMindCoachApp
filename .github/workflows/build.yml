@@ -54,6 +54,7 @@ jobs:
       - name: Build with Buildozer
         run: |
           buildozer --version # Affiche la version de Buildozer utilisée
+          buildozer clean || echo "Clean failed, continuing build..."
           buildozer android debug # Lance la construction de l'APK de débogage
 
       # Étape 7: Récupère l'APK construit (artifact) si la construction réussit
