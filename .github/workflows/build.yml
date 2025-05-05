@@ -35,18 +35,22 @@ jobs:
           sudo apt-get install -y git zip unzip wget ant # Outils système requis
           pip install --upgrade pip # Met à jour pip
           pip install buildozer # Installe buildozer
-          # Installe Cython SÉPARÉMENT si besoin (parfois nécessaire)
-          # pip install cython==0.29.34
-          # buildozer a besoin d'accéder à /home/runner/.local/bin
+          # Ajoute le chemin local pip au PATH pour que buildozer soit trouvé
           echo "/home/runner/.local/bin" >> $GITHUB_PATH
 
-      # Étape 5: Lancer la construction Buildozer
+      # --- ÉTAPE DE DEBUG AJOUTÉE ---
+      # Étape 5: Lister les fichiers pour vérifier si buildozer.spec est là
+      - name: List files in current directory
+        run: ls -la
+      # --- FIN ÉTAPE DE DEBUG ---
+
+      # Étape 6: Lancer la construction Buildozer
       - name: Build with Buildozer
         run: |
           buildozer --version # Affiche la version de buildozer
           buildozer android debug # Lance la construction
 
-      # Étape 6: (Ne s'exécute que si la construction réussit) Récupérer l'APK
+      # Étape 7: (Ne s'exécute que si la construction réussit) Récupérer l'APK
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
