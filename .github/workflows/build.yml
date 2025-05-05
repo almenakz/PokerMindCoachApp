@@ -2,7 +2,7 @@ name: Build Kivy APK with Buildozer
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
@@ -16,50 +16,27 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Set up Java JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
-      # --- NOUVELLES ÉTAPES: Installation manuelle SDK Android ---
-      - name: Install Android SDK components
-        run: |
-          # Définir les versions cibles
-          export BUILD_TOOLS_VERSION="33.0.2" # Version stable qu'on cible
-          export ANDROID_API="33" # API cible (doit correspondre ou être >= minapi)
+      # --- INSTALLATION DU SDK AVEC UNE ACTION GITHUB PRÉ-FAITE ---
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3 # Action officielle pour installer le SDK
+        with:
+          sdkCommand: "platforms;android-33,platform-tools,build-tools;33.0.2" # Installe plateforme et build-tools
+          ndkVersion: "25b" # Version du NDK
+      # --- FIN INSTALLATION SDK ---
 
-          # Télécharger les outils en ligne de commande Android
-          # Note: Le numéro de version dans le lien peut changer, celui-ci fonctionnait récemment
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          export ANDROID_HOME=${{ github.workspace }}/android-sdk # Définit où installer le SDK
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
-          # Renommer le dossier extrait en 'latest' pour que sdkmanager le trouve
-          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          rm cmdline-tools.zip
-
-          # Ajouter les outils SDK au PATH pour pouvoir les exécuter
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-
-          # Accepter les licences SDK (nécessaire)
-          echo "INFO: Accepting SDK licenses..."
-          yes | sdkmanager --licenses > /dev/null || echo "Failed accepting licenses (non-fatal)"
-
-          # Installer les paquets requis: platform-tools, la plateforme API, et les build-tools
-          echo "INFO: Installing SDK packages..."
-          sdkmanager "platform-tools" "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS_VERSION}"
-          echo "INFO: SDK packages installed."
-
-      # --- FIN NOUVELLES ÉTAPES ---
 
       - name: Install Buildozer and dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y git zip unzip wget ant # Git est toujours requis par buildozer
+          sudo apt-get install -y git zip unzip wget ant # Git est toujours requis
           pip install --upgrade pip
           pip install cython==0.29.34 # Garder Cython
           pip install buildozer
@@ -69,14 +46,13 @@ jobs:
         run: ls -la
 
       - name: Build with Buildozer
-        # Buildozer devrait maintenant trouver les outils SDK/Build-Tools installés manuellement
         run: |
           buildozer --version
-          # buildozer clean || echo "Clean failed, continuing build..." # Clean est optionnel ici
-          buildozer -v android debug # Utiliser -v pour avoir plus de logs buildozer
+          # buildozer clean || echo "Clean failed, continuing build..." # Clean est optionnel
+          buildozer -v android debug # Utiliser -v pour des logs détaillés
 
       - name: Upload APK artifact
-        if: ${{ success() }} # Ne s'exécute que si le build réussit
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: apk
