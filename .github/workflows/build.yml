@@ -2,7 +2,7 @@ name: Build Kivy APK with Buildozer
 
 on:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -24,21 +24,12 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      # --- Installation SDK avec action GitHub ---
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          # Installe plateforme 33, build-tools 33.0.2, et platform-tools
-          sdkCommand: "platforms;android-33,platform-tools,build-tools;33.0.2"
-          ndkVersion: "25b" # NDK spécifié ici aussi
+      # --- On enlève l'installation manuelle du SDK ---
 
-      - name: Install Buildozer system dependencies
+      - name: Install Buildozer and dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y git zip unzip wget ant # unzip est nécessaire ici aussi
-
-      - name: Install Buildozer and Cython
-        run: |
+          sudo apt-get install -y git zip unzip ant wget # Garder ces outils
           pip install --upgrade pip
           pip install cython==0.29.34
           pip install buildozer
@@ -47,28 +38,16 @@ jobs:
       - name: List files in current directory
         run: ls -la
 
-      # --- Étape de Build MODIFIÉE avec Debug ---
       - name: Build with Buildozer
         run: |
-          # --- DEBUG INFO AJOUTÉ ---
-          echo "--- Debug Info Before Build ---"
-          echo "Variable ANDROID_HOME=$ANDROID_HOME"
-          echo "Variable PATH=$PATH"
-          echo "Recherche de 'aidl' dans ANDROID_HOME..."
-          find $ANDROID_HOME -name aidl -type f -ls || echo "ERREUR DEBUG: aidl non trouvé dans ANDROID_HOME par find"
-          which aidl || echo "ERREUR DEBUG: aidl non trouvé dans le PATH par which"
-          echo "--- Starting Build ---"
-          # --- FIN DEBUG INFO ---
-
           buildozer --version
-          # buildozer clean || echo "Clean failed, continuing build..."
-          buildozer -v android debug # -v pour verbose
+          # On laisse Buildozer télécharger/gérer le SDK/NDK/Build-Tools
+          # grâce aux infos dans buildozer.spec (notamment accept_sdk_license)
+          buildozer -v android debug # Toujours en verbose
 
-      # --- Upload Artifact ---
       - name: Upload APK artifact
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: bin/*.apk
-
