@@ -24,36 +24,51 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      # --- INSTALLATION DU SDK AVEC UNE ACTION GITHUB PRÉ-FAITE ---
+      # --- Installation SDK avec action GitHub ---
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3 # Action officielle pour installer le SDK
+        uses: android-actions/setup-android@v3
         with:
-          sdkCommand: "platforms;android-33,platform-tools,build-tools;33.0.2" # Installe plateforme et build-tools
-          ndkVersion: "25b" # Version du NDK
-      # --- FIN INSTALLATION SDK ---
+          # Installe plateforme 33, build-tools 33.0.2, et platform-tools
+          sdkCommand: "platforms;android-33,platform-tools,build-tools;33.0.2"
+          ndkVersion: "25b" # NDK spécifié ici aussi
 
-
-      - name: Install Buildozer and dependencies
+      - name: Install Buildozer system dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y git zip unzip wget ant # Git est toujours requis
+          sudo apt-get install -y git zip unzip wget ant # unzip est nécessaire ici aussi
+
+      - name: Install Buildozer and Cython
+        run: |
           pip install --upgrade pip
-          pip install cython==0.29.34 # Garder Cython
+          pip install cython==0.29.34
           pip install buildozer
-          echo "/home/runner/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: List files in current directory
         run: ls -la
 
+      # --- Étape de Build MODIFIÉE avec Debug ---
       - name: Build with Buildozer
         run: |
-          buildozer --version
-          # buildozer clean || echo "Clean failed, continuing build..." # Clean est optionnel
-          buildozer -v android debug # Utiliser -v pour des logs détaillés
+          # --- DEBUG INFO AJOUTÉ ---
+          echo "--- Debug Info Before Build ---"
+          echo "Variable ANDROID_HOME=$ANDROID_HOME"
+          echo "Variable PATH=$PATH"
+          echo "Recherche de 'aidl' dans ANDROID_HOME..."
+          find $ANDROID_HOME -name aidl -type f -ls || echo "ERREUR DEBUG: aidl non trouvé dans ANDROID_HOME par find"
+          which aidl || echo "ERREUR DEBUG: aidl non trouvé dans le PATH par which"
+          echo "--- Starting Build ---"
+          # --- FIN DEBUG INFO ---
 
+          buildozer --version
+          # buildozer clean || echo "Clean failed, continuing build..."
+          buildozer -v android debug # -v pour verbose
+
+      # --- Upload Artifact ---
       - name: Upload APK artifact
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: apk
           path: bin/*.apk
+
