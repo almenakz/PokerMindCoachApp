@@ -112,6 +112,8 @@ android.permissions = INTERNET, (name=android.permission.WRITE_EXTERNAL_STORAGE;
 # (str) Android NDK version to use
 #android.ndk = 23b
 
+android.build_tools_version = 34.0.0
+
 # (int) Android NDK API to use. This is the minimum API your app will support, it should usually match android.minapi.
 #android.ndk_api = 21
 
